@@ -1,4 +1,4 @@
-# rest-open-meteo-jp
+# rest-open-meteo-py
 
 ## サンプルRESTサーバー
 
