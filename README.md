@@ -48,7 +48,16 @@ uvicorn main:app --reload
 uvicorn main:app
 ```
 
-デフォルトのポート番号は8000。ポート番号を指定するときは --port [ポート番号] を後ろに付与する。
+コマンドの説明:
+
+| コマンドの要素 |  説明  |
+| ---- | ---- |
+|  uvicorn  | FastAPIベースの非同期Python Webアプリケーションを実行する |
+|  main:app  | Pythonファイルmain.pyの中で、FastAPIが生成する変数がapp |
+|  --reload  | 実行中にソースコードが変更されたとき、サーバーが自動的にリロードされる |
+
+デフォルトのポート番号は8000。  
+ポート番号を指定するときは --port [ポート番号] を後ろに付与する。
 
 ### サーバーへアクセスする
 
@@ -65,6 +74,7 @@ Webブラウザを開き、次のURLへアクセスする（ポート番号が80
 |  環境変数名 |  説明  |
 | ---- | ---- |
 |  OPENMETEO_REST_URL  | Open Meteo REST APIへアクセスするルートURL |
+|  OPENMETEO_TZ  | Open Meteo REST APIへ渡すタイムゾーン（例：Asia/Tokyo） |
 
 ### REST APIs
 
@@ -85,41 +95,9 @@ REST用アグリゲーションの出力構造：
 }
 ```
 
-#### /rest/temperature
+#### /rest/cities
 
-指定した緯度と経度からその地点の気温の予測データを取得する。
-
-リクエストの仕様：
-
-|  メソッド |  リクエスト1  |  リクエスト2  |
-| ---- | ---- | ---- |
-|  GET | latitude | longitude |
-|  説明 | 予測する地点の緯度（必須）| 予測する地点の経度（必須）|
-
-レスポンスの仕様:
-
-|  キー  | 説明  |
-| ---- | ---- |
-| datetime | 予測日時（UNIXタイムスタンプ） |
-| temperature | 指定した地点の予測気温 |
-
-レスポンス例:
-
-```bash
-{
-   'keys': ['datetime', 'temperature'], 
-   'records': [
-       {'datetime': 1724943600, 'temperature': 28.5},  
-       {'datetime': 1724947200, 'temperature': 29.2},  
-       ...
-   ],
-   'message': null
-}
-```
-
-#### /rest/test
-
-サーバーが起動しているか確認するテストのエンドポイント
+いくつかの都庁、府庁、県庁の緯度と経度を取得する。サーバーが起動しているか確認するテストのエンドポイント
 
 リクエストの仕様：
 
@@ -141,8 +119,66 @@ REST用アグリゲーションの出力構造：
 {
    'keys': ['city', 'latitude', 'longitude'], 
    'records': [
-       {'city': 'tokyo', 'latitude': 35.6895014, 'longitude': 139.6917337}, 
-       {'city': 'osaka', 'latitude': 34.686344, 'longitude': 135.520037} 
+       {'city': '新宿区', 'latitude': 35.689501, 'longitude': 139.691722}, 
+       {'city': '大阪市', 'latitude': 34.686344, 'longitude': 135.520037} 
+       ...
+   ],
+   'message': null
+}
+```
+
+#### /rest/server_info
+
+このサーバーが何者かを提示するメソッド。eYACHO/GEMBA Noteアプリ上でダイアログにメッセージを表示する例。
+
+リクエストボディの仕様：
+
+|  メソッド | ボディ |
+| ---- | ---- |
+|  POST | 特に不要 |
+|  説明 | 存在すればコンソール上に表示 |
+
+レスポンスの仕様:
+
+|  キー  | 説明  |
+| ---- | ---- |
+| message | 表示するメッセージ |
+
+レスポンス例:
+
+```bash
+{
+  'message': 'Hello, I am a Python server!'
+}
+```
+
+#### /rest/weather
+
+指定した緯度と経度からその地点の天気と気温の予測データを1週間分（1時間ごと）取得する。
+
+リクエストの仕様：
+
+|  メソッド |  リクエスト1  |  リクエスト2  |
+| ---- | ---- | ---- |
+|  GET | latitude | longitude |
+|  説明 | 予測する地点の緯度（必須）| 予測する地点の経度（必須）|
+
+レスポンスの仕様:
+
+|  キー  | 説明  |
+| ---- | ---- |
+| datetime | 予測日時（UNIXタイムスタンプ） |
+| temperature | 指定した地点の予測気温 |
+| weather | 指定した地点の予測天気 |
+
+レスポンス例:
+
+```bash
+{
+   'keys': ['datetime', 'temperature', 'weather'], 
+   'records': [
+       {'datetime': 1724943600, 'temperature': 28.5, 'weather': '晴れ'},  
+       {'datetime': 1724947200, 'temperature': 29.2, 'weather': '快晴'},  
        ...
    ],
    'message': null
@@ -153,9 +189,9 @@ REST用アグリゲーションの出力構造：
 
 サーバーを起動した後で、Webブラウザを開き、次のURLへアクセスしてみる[1]。
 
-[http://localhost:8000/rest/test](http://localhost:8000/rest/test)
+[http://localhost:8000/rest/cities](http://localhost:8000/rest/cities)
 
-[http://localhost:8000/rest/temperature?latitude=35.6785&longitude=139.6823](http://localhost:8000/rest/temperature?latitude=35.6785&longitude=139.6823)
+[http://localhost:8000/rest/weather?latitude=35.6785&longitude=139.6823](http://localhost:8000/rest/weather?latitude=35.6785&longitude=139.6823)
 
 [1] サーバーのポート番号を変更した場合は、アクセスするURLのポート番号も変更する
 
@@ -163,11 +199,15 @@ REST用アグリゲーションの出力構造：
 
 - packageフォルダ以下にある開発パッケージのバックアップファイル（Open_Meteo__<バージョン>__backup.gncproj）をeYACHO/GEMBA Noteに復元する
 - サーバーが起動していることを確認する
-- 開発パッケージフォルダ上にある「天気予測」ノートを開く
-- 「最新に更新」ボタンをクリックし、本日の気温予測が一覧表示されることを確認する[2]
+  - Windowsアプリからローカルサーバーにアクセスする場合は、管理者モードで利用対象アプリのループバックを有効にする → [Windowsで開発する際の注意点](./NoticesForWindows.md)
+- 開発パッケージフォルダ上にある **天気予測** ノートを開く
+- 自由ページにある **天気予測** ページ上の **更新** ボタンをクリックする[2]
+  - 現日時以降の気温と天気の予測が24時間分（1時間おき）一覧表示されることを確認する
+- 同ページ右上にある **サーバー情報** をクリックするとダイアログ上にメッセージが表示される
 
-[2] サーバーのポート番号を変更した場合は、アグリゲーション検索条件「forecastTemperature」のコネクタ定義にある **URL** を変更する。
+[2] サーバーのポート番号を変更した場合は、アグリゲーション検索条件「forecastWeather」のコネクタ定義にある **URL** を変更する。  
 
 ### 更新履歴
 
+- 2024-10-11 - 天気を追加、ループバック有効を追記
 - 2024-09-30 - 初回リリース

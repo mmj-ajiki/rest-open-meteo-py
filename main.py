@@ -4,7 +4,7 @@
 # [FILE] main.py
 #
 # [DESCRIPTION]
-#  Sample Server for generating notes using the Custom URL Scheme
+#  Open-MetaoのAPIを利用したRESTメソッドを定義する
 # 
 # [NOTES]
 #
@@ -13,7 +13,7 @@ from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse
-from api.openmeteo import getForecastTemp
+from api.openmeteo import getForecastWeather
     
 app = FastAPI()
 app.mount(path="/static", app=StaticFiles(directory="static"), name="static")
@@ -48,7 +48,7 @@ def is_reload_enabled():
 #  トップページを開く
 #
 # [INPUTS]
-#  Request - リクエスト
+#  request - リクエスト
 # 
 # [OUTPUTS]
 # 
@@ -66,20 +66,98 @@ async def topPage(request: Request):
 
 #
 # GET Method
-# End Point: /rest/temperature
+# End Point: /rest/cities
 #
 # [DESCRIPTION]
-#  緯度と経度からその地点の気温の予測データを取得する
+#  いくつかの都庁、府庁、県庁の緯度と経度を取得する。
 #
 # [INPUTS] 
-#  Request - リクエスト
+#  None
+# 
+# [OUTPUTS]
+#  都庁、府庁、県庁の緯度と経度
+#  {
+#    "keys": ["city", "latitude", "longitude"],
+#    "records": [{'city':'新宿区', 'latitude':35.689501, 'longitude':139.691722}, ...],
+#    "message": None
+#  }
+# 
+# [NOTES]
+#
+@app.get("/rest/cities")
+def getCities():
+    results = {}
+    results['keys'] = ['city', 'latitude', 'longitude']
+    list = []
+    elements = {'city': '新宿区', 'latitude': 35.689501, 'longitude': 139.691722}
+    list.append(elements)
+    elements = {'city':'大阪市', 'latitude': 34.686344, 'longitude': 135.520037}
+    list.append(elements)
+    elements = {'city':'福岡市', 'latitude': 33.606389, 'longitude': 130.417968}
+    list.append(elements)
+
+    results['records'] = list
+    results['message'] = None
+
+    if is_reload_enabled():
+        print("[JSON]", results)
+
+    return results
+#
+# HISTORY
+# [2] 2024-10-11 - Added Fukuoka
+# [1] 2024-09-30 - Initial version
+#
+
+#
+# POST Method
+# End Point: /rest/server_info
+#
+# [DESCRIPTION]
+#   eYACHO/GEMBA Noteへメッセージを返す
+#
+# [INPUTS] 
+#   request - bodyにクライアント（eYACHO/GEMBA Note）からの緯度経度を含んだ情報が含まれる（利用せず）
+# 
+# [OUTPUTS]
+#   次のJSONを返す
+#   { "message": <メッセージ> }
+# 
+# [NOTES]
+#   eYACHO/GEMBA Noteのボタンアクション「サーバーへ送信」でメッセージを表示させる
+#
+@app.post("/rest/server_info")
+async def getWho(request: Request):
+    results = {}
+    results['message'] = "Hello, I am a Python server!"
+    
+    if is_reload_enabled():
+        body = await request.body()
+        print("[BODY]", body)
+        print("[JSON]", results)
+
+    return results
+#
+# HISTORY
+# [1] 2024-10-11 - Initial version
+#
+
+#
+# GET Method
+# End Point: /rest/weather
+#
+# [DESCRIPTION]
+#  緯度と経度からその地点の天気と気温の予測データを取得する
+#
+# [INPUTS] 
+#  request - Request from the method：緯度と経度を含む
 # 
 # [OUTPUTS]
 # {
-#   'keys': ['datetime', 'temperature'], 
+#   'keys': ['datetime', 'temperature', 'weather'], 
 #   'records': [
-#       {'datetime': 1724943600, 'temperature': 28.5},  
-#       {'datetime': 1724947200, 'temperature': 29.2},  
+#       {'datetime': 1724943600, 'temperature': 28.5, 'weather': '晴れ'},  
+#       {'datetime': 1724947200, 'temperature': 29.2, 'weather': '快晴'},  
 #       ...
 #   ],
 #   'message': null
@@ -88,7 +166,7 @@ async def topPage(request: Request):
 # [NOTES]
 #  datetimeの値はエポック時間
 #
-@app.get("/rest/temperature")
+@app.get("/rest/weather")
 def getTemperature(request: Request): 
     results = {'keys':[], 'records':[], 'message':'緯度あるいは経度がありません'};
     lat = 0
@@ -104,9 +182,9 @@ def getTemperature(request: Request):
     if lat == None or lon == None or lat == 0 or lon == 0:
         return results
 
-    results['keys'] = ['datetime', 'temperature']
+    results['keys'] = ['datetime', 'temperature', 'weather']
 
-    info = getForecastTemp(lat, lon)
+    info = getForecastWeather(lat, lon)
 
     results['records'] = info['forecast']
     results['message'] = info['message']
@@ -117,46 +195,6 @@ def getTemperature(request: Request):
     return results
 #
 # HISTORY
-# [1] 2024-09-30 - Initial version
-#
-
-#
-# GET Method
-# End Point: /rest/test
-#
-# [DESCRIPTION]
-#  REST APIが起動できるかテストするメソッド
-#
-# [INPUTS] 
-#  None
-# 
-# [OUTPUTS]
-#  都庁、府庁、県庁の緯度と経度
-#  {
-#    "keys": ["city", "latitude", "longitude"],
-#    "records": [{'city':'tokyo', 'latitude':35.6895014, 'longitude':139.6917337}, ...],
-#    "message": None
-#  }
-# 
-# [NOTES]
-#
-@app.get("/rest/test")
-def getTest():
-    results = {}
-    results['keys'] = ['city', 'latitude', 'longitude']
-    list = []
-    elements = {'city': 'tokyo', 'latitude': 35.6895014, 'longitude': 139.6917337}
-    list.append(elements)
-    elements = {'city':'osaka', 'latitude': 34.686344, 'longitude': 135.520037}
-    list.append(elements)
-    results['records'] = list
-    results['message'] = None
-
-    if is_reload_enabled():
-        print("[JSON]", results)
-
-    return results
-#
-# HISTORY
+# [2] 2024-10-11 - Changed /rest/weather
 # [1] 2024-09-30 - Initial version
 #

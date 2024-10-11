@@ -20,26 +20,26 @@ headers = {
     'content-type': 'application/json'
 }
 
-# testメソッドにアクセスする
+# citiesメソッドにアクセスする
 res_data = None
 try:
-    response = requests.get(rest_url + "/test", headers=headers)
+    response = requests.get(rest_url + "/cities", headers=headers)
     res_data = response.json()
 except requests.exceptions.RequestException as err:
     print("[Server Connection Error]:", err)
 
 if res_data != None:
-    print("----- Results from /test -----")
+    print("----- Results from /cities -----")
     print(res_data)
 else:
     sys.exit()
 
-# 指定した地点の予測気温を取得する
-# {'city': 'tokyo', 'latitude': 35.6895014, 'longitude': 139.6917337};
-# {'city':'osaka', 'latitude': 34.686344, 'longitude': 135.520037};
-lat = '35.6895014'
-lon = '139.6917337'
-url = rest_url+"/temperature?latitude=" + lat + "&longitude=" + lon
+# 指定した地点の気温と天気の予測データを取得する
+# {'city': '新宿区', 'latitude': 35.689501, 'longitude': 139.691722};
+# {'city':'大阪市', 'latitude': 34.686344, 'longitude': 135.520037};
+lat = '35.689501'
+lon = '139.691722'
+url = rest_url+"/weather?latitude=" + lat + "&longitude=" + lon
 res_data = None
 try:
     response = requests.get(url, headers=headers)
@@ -48,10 +48,11 @@ except requests.exceptions.RequestException as err:
     print("[Server Connection Error]:", err)
 
 if res_data != None:
-    print("----- Results from /temperature -----")
+    print("----- Results from /weather -----")
     print(res_data)
 
 #
 # HISTORY
+# [2] 2024-10-11 - Changed /rest/temperature to /rest/weather
 # [1] 2024-09-30 - First release
 #
