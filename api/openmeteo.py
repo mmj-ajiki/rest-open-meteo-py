@@ -11,6 +11,10 @@ import os
 import datetime
 import requests
 import urllib.parse
+from dotenv import load_dotenv
+
+# .envファイルの内容を読み込見込む
+load_dotenv()
 
 # 環境変数からOPEN METEOのREST URLを取得する
 restURL = os.environ.get("OPENMETEO_REST_URL")
