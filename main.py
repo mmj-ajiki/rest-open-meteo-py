@@ -58,9 +58,13 @@ def is_reload_enabled():
 @app.get("/", response_class=HTMLResponse)
 async def topPage(request: Request):
     
-    return templates.TemplateResponse("top.html", {"request": request, "title": "Open-Meteo REST Server"})
+    return templates.TemplateResponse(
+        name="top.html", 
+        context={"request": request, "title": "Open-Meteo REST Server"},
+        request=request)
 #
 # HISTORY
+# [2] 2026-04-22 - Fixed TemplateResponse() due to the Starlette change
 # [1] 2024-09-30 - Initial version
 #
 
